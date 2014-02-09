@@ -1,0 +1,43 @@
+CREATE KEYSPACE test WITH replication = {
+  'class': 'SimpleStrategy',
+  'replication_factor': '1'
+} AND durable_writes = 'false';
+
+
+USE test;
+
+CREATE TABLE "Clients" (
+  key blob PRIMARY KEY,
+  payload text
+) WITH COMPACT STORAGE AND
+  read_repair_chance=0 AND
+  replicate_on_write='false' AND
+  compaction={'min_threshold': '0', 'class': 'SizeTieredCompactionStrategy', 'max_threshold': '0'};
+
+CREATE TABLE "Contracts" (
+  key blob,
+  column1 text,
+  value blob,
+  PRIMARY KEY (key, column1)
+) WITH COMPACT STORAGE AND
+  read_repair_chance=0 AND
+  replicate_on_write='false' AND
+  compaction={'min_threshold': '0', 'class': 'SizeTieredCompactionStrategy', 'max_threshold': '0'};
+
+CREATE TABLE progress (
+  key text,
+  key2 int,
+  column1 bigint,
+  value text,
+  PRIMARY KEY ((key, key2), column1)
+) WITH read_repair_chance=0 AND
+  replicate_on_write='false' AND
+  compaction={'class': 'SizeTieredCompactionStrategy', 'min_sstable_size': '150', 'bucket_low': '0.8', 'bucket_high': '1.2'};
+
+CREATE TABLE "odmResIO" (
+  key text PRIMARY KEY,
+  input blob,
+  output blob
+) WITH COMPACT STORAGE AND
+  read_repair_chance=0 AND
+  replicate_on_write='false';
