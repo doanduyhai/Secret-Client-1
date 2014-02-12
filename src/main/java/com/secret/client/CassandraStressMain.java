@@ -1,5 +1,24 @@
 package com.secret.client;
 
+import static com.secret.client.business.ExportBIService.EXPORT_BI_SERVICE_INSTANCES;
+import static com.secret.client.business.GoOneService.GO_ONE_SERVICE_INSTANCES;
+import static com.secret.client.business.RuleEngineService.RULE_ENGINE_SERVICE_INSTANCES;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.google.common.util.concurrent.Service;
+import com.google.common.util.concurrent.ServiceManager;
 import com.secret.client.business.DataLoaderService;
 import com.secret.client.business.ExportBIService;
 import com.secret.client.business.GoOneService;
@@ -11,28 +30,7 @@ import com.secret.client.init.PropertyLoader;
 import com.secret.client.model.Client;
 import com.secret.client.model.Contract;
 import com.secret.client.random.RandomDataIterator;
-import com.google.common.util.concurrent.Service;
-import com.google.common.util.concurrent.ServiceManager;
 import me.prettyprint.hector.api.Keyspace;
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import static com.secret.client.business.ExportBIService.EXPORT_BI_SERVICE_INSTANCES;
-import static com.secret.client.business.GoOneService.GO_ONE_SERVICE_INSTANCES;
-import static com.secret.client.business.RuleEngineService.RULE_ENGINE_SERVICE_INSTANCES;
 
 public class CassandraStressMain {
     private static final Logger LOGGER = LoggerFactory.getLogger(CassandraStressMain.class);
@@ -43,7 +41,7 @@ public class CassandraStressMain {
     private static final String SAMPLE_XOM_INPUT_PATH = "sample.xom.input.path";
     private static final String SAMPLE_XOM_OUTPUT_PATH = "sample.xom.output.path";
 
-    private CountDownLatch GLOBAL_LATCH = new CountDownLatch(5);
+    private CountDownLatch globalLatch;
 
     public static void main(String[] args) throws InterruptedException, IOException {
         new CassandraStressMain().startProcessing();
@@ -64,7 +62,13 @@ public class CassandraStressMain {
         final RequestDao requestDao = buildRequestDao(propertyLoader, keyspace);
         final List<Service> services = buildServiceChain(propertyLoader, keyspace, randomDataIterator, requestDao);
 
-        final ExecutorService multiThreadedExecutor = Executors.newFixedThreadPool(5);
+        final int goOneInstancesCount = propertyLoader.getInt(GO_ONE_SERVICE_INSTANCES);
+        final int ruleEngineInstancesCount = propertyLoader.getInt(RULE_ENGINE_SERVICE_INSTANCES);
+        final int exportBIInstancesCount = propertyLoader.getInt(EXPORT_BI_SERVICE_INSTANCES);
+        int threadCount = goOneInstancesCount + ruleEngineInstancesCount + exportBIInstancesCount + 1;
+        globalLatch = new CountDownLatch(threadCount);
+
+        final ExecutorService multiThreadedExecutor = Executors.newFixedThreadPool(threadCount);
         final ServiceManager serviceManager = new ServiceManager(services);
 
         serviceManager.addListener(new ServiceManager.Listener() {
@@ -92,7 +96,7 @@ public class CassandraStressMain {
             }
         });
         serviceManager.startAsync();  // start all the services asynchronously
-        GLOBAL_LATCH.await();
+        globalLatch.await();
         hectorBootstrapper.truncateTables();
         serviceManager.stopAsync();
         multiThreadedExecutor.shutdownNow();
@@ -103,21 +107,21 @@ public class CassandraStressMain {
 
         List<Service> services = new ArrayList<Service>();
         final ObjectMapper mapper = buildJacksonMapper();
-        services.add(new DataLoaderService(GLOBAL_LATCH, keyspace, mapper, randomDataIterator));
+        services.add(new DataLoaderService(globalLatch, keyspace, mapper, randomDataIterator));
         final int goOneInstancesCount = propertyLoader.getInt(GO_ONE_SERVICE_INSTANCES);
         final int ruleEngineInstancesCount = propertyLoader.getInt(RULE_ENGINE_SERVICE_INSTANCES);
         final int exportBIInstancesCount = propertyLoader.getInt(EXPORT_BI_SERVICE_INSTANCES);
 
         for (int i = 1; i <= goOneInstancesCount; i++) {
-            services.add(new GoOneService(GLOBAL_LATCH, i, keyspace, mapper, requestDao));
+            services.add(new GoOneService(globalLatch, i, keyspace, mapper, requestDao));
         }
 
         for (int i = 1; i <= ruleEngineInstancesCount; i++) {
-            services.add(new RuleEngineService(GLOBAL_LATCH, i, keyspace, mapper, requestDao));
+            services.add(new RuleEngineService(globalLatch, i, keyspace, mapper, requestDao));
         }
 
         for (int i = 1; i <= exportBIInstancesCount; i++) {
-            services.add(new ExportBIService(GLOBAL_LATCH, i, keyspace, mapper, requestDao));
+            services.add(new ExportBIService(globalLatch, i, keyspace, mapper, requestDao));
         }
         return services;
     }
