@@ -8,7 +8,7 @@ USE test;
 CREATE COLUMN FAMILY Clients
 WITH comparator = UTF8Type
 AND key_validation_class=UTF8Type
-AND column_metadata = [{column_name:  payload, validation_class: UTF8Type}]
+AND column_metadata = [{column_name:  payload, validation_class: BytesType}]
 AND min_compaction_threshold=0 AND max_compaction_threshold=0
 AND read_repair_chance=0;
 
@@ -33,3 +33,10 @@ WITH key_validation_class='CompositeType(UTF8Type,Int32Type)'
 AND comparator = 'CompositeType(LongType)'
 AND default_validation_class=UTF8Type
 AND compaction_strategy_options={'min_sstable_size': '150', 'bucket_low': '0.8', 'bucket_high': '1.2'};
+
+CREATE COLUMN FAMILY ProgressCounter
+WITH comparator = Int32Type
+AND key_validation_class='CompositeType(UTF8Type,Int32Type)'
+AND default_validation_class=CounterColumnType
+AND min_compaction_threshold=0 AND max_compaction_threshold=0
+AND read_repair_chance=0;

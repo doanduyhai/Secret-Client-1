@@ -19,8 +19,8 @@ import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.Composite;
 import me.prettyprint.hector.api.mutation.Mutator;
 
-public class DataLoaderService extends AbstractInjectorService{
-    protected static final Logger LOGGER = LoggerFactory.getLogger(DataLoaderService.class);
+public class DataLoaderStep extends AbstractInjectorStep {
+    protected static final Logger LOGGER = LoggerFactory.getLogger(DataLoaderStep.class);
 
     private static final String DATALOADER_BATCH_INSERT_SIZE = "dataloader.service.batch.insert.size";
     private static final String DATALOADER_WAIT_IN_MILLIS = "dataloader.service.wait.millis";
@@ -35,8 +35,8 @@ public class DataLoaderService extends AbstractInjectorService{
     protected ContractDao contratDao;
     protected ProgressDao progressDao;
 
-    public DataLoaderService(CountDownLatch globalLatch,Keyspace keyspace,ObjectMapper mapper,
-                             RandomDataIterator randomDataIterator) {
+    public DataLoaderStep(CountDownLatch globalLatch, Keyspace keyspace, ObjectMapper mapper,
+            RandomDataIterator randomDataIterator) {
         super(globalLatch,keyspace,mapper);
         this.keyspace = keyspace;
         this.randomDataIterator = randomDataIterator;

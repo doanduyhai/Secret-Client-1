@@ -14,7 +14,7 @@ public class Client {
         this.conjoint = conjoint;
     }
 
-    public Client(String numeroClient, String conjoint,String idMen) {
+    public Client(String numeroClient, String conjoint, String idMen) {
         this.numeroClient = numeroClient;
         this.conjoint = conjoint;
         this.idMen = idMen;
@@ -784,5 +784,93 @@ public class Client {
 
     public void setMontantPensionDu(String montantPensionDu) {
         this.montantPensionDu = montantPensionDu;
+    }
+
+    public String toCsv() {
+        return (idMen != null ? idMen : "") + ";" +
+                (autresRevenus != null ? autresRevenus : "") + ";" +
+                (allocationsDeLaPersonne != null ? allocationsDeLaPersonne : "") + ";" +
+                (autresCharges != null ? autresCharges : "") + ";" +
+                (canalDeContact != null ? canalDeContact : "") + ";" +
+                (chargesHabitation != null ? chargesHabitation : "") + ";" +
+                (codeCsp != null ? codeCsp : "") + ";" +
+                (codePostal != null ? codePostal : "") + ";" +
+                (codeRegroupement != null ? codeRegroupement : "") + ";" +
+                (codeValiditeEmail != null ? codeValiditeEmail : "") + ";" +
+                (codeValiditeTelephoneFixe != null ? codeValiditeTelephoneFixe : "") + ";" +
+                (codeValiditeTelephonePortable != null ? codeValiditeTelephonePortable : "") + ";" +
+                (conjoint != null ? conjoint : "") + ";" +
+                (creditExterne != null ? creditExterne : "") + ";" +
+                (dateDebut != null ? dateDebut : "") + ";" +
+                (dateDeCreation != null ? dateDeCreation : "") + ";" +
+                (dateEmbauche != null ? dateEmbauche : "") + ";" +
+                (dateEmmenagement != null ? dateEmmenagement : "") + ";" +
+                (dateFin != null ? dateFin : "") + ";" +
+                (dateMajHabitat != null ? dateMajHabitat : "") + ";" +
+                (dateMiseAJourTelephonePortable != null ? dateMiseAJourTelephonePortable : "") + ";" +
+                (dateMajRevenus != null ? dateMajRevenus : "") + ";" +
+                (dateNaissance != null ? dateNaissance : "") + ";" +
+                (loyer != null ? loyer : "") + ";" +
+                (motif != null ? motif : "") + ";" +
+                (nbEnfantsACharge != null ? nbEnfantsACharge : "") + ";" +
+                (numeroClient != null ? numeroClient : "") + ";" +
+                (paysDeNationalite != null ? paysDeNationalite : "") + ";" +
+                (pensionRecus != null ? pensionRecus : "") + ";" +
+                (qualite != null ? qualite : "") + ";" +
+                (regimeJuridique != null ? regimeJuridique : "") + ";" +
+                (revenuPrincipal != null ? revenuPrincipal : "") + ";" +
+                (sinistreEnCours != null ? sinistreEnCours : "") + ";" +
+                (situationFamiliale != null ? situationFamiliale : "") + ";" +
+                (situationLegale != null ? situationLegale : "") + ";" +
+                (topMembreDuPersonnel != null ? topMembreDuPersonnel : "") + ";" +
+                (topRefusabilite != null ? topRefusabilite : "") + ";" +
+                (topValiditeAdresse != null ? topValiditeAdresse : "") + ";" +
+                (typeHabitat != null ? typeHabitat : "") + ";" +
+                (typePieceIdentite != null ? typePieceIdentite : "") + ";" +
+                (typologieClientCredit != null ? typologieClientCredit : "") + ";" +
+                (dateDerniereUtilisationRevolving != null ? dateDerniereUtilisationRevolving : "") + ";" +
+                (datePlusAncienneSouscriptionPB != null ? datePlusAncienneSouscriptionPB : "") + ";" +
+                (datePlusAncienneSouscriptionRev != null ? datePlusAncienneSouscriptionRev : "") + ";" +
+                (sofCapitalRestant_du_PB != null ? sofCapitalRestant_du_PB : "") + ";" +
+                (sofCapitalRestant_du_REV != null ? sofCapitalRestant_du_REV : "") + ";" +
+                (SOFMontant_Moyen_REV_12m != null ? SOFMontant_Moyen_REV_12m : "") + ";" +
+                (SOFMax_Nombre_Impayes != null ? SOFMax_Nombre_Impayes : "") + ";" +
+                (SOFTauxUtilisation != null ? SOFTauxUtilisation : "") + ";" +
+                (topClientActifEvry != null ? topClientActifEvry : "") + ";" +
+                (topClientActifRBX != null ? topClientActifRBX : "") + ";" +
+                (ffMaxNotePaiement != null ? ffMaxNotePaiement : "") + ";" +
+                (ffMinResultanteREV != null ? ffMinResultanteREV : "") + ";" +
+                (ffNbComptesAmortissables != null ? ffNbComptesAmortissables : "") + ";" +
+                (ffNbComptesDetenus != null ? ffNbComptesDetenus : "") + ";" +
+                (ffNbComptesRenouvelables != null ? ffNbComptesRenouvelables : "") + ";" +
+                (ffTauxDutilisationREV12m != null ? ffTauxDutilisationREV12m : "") + ";" +
+                (ffVariationDette12 != null ? ffVariationDette12 : "") + ";" +
+                (topDetentionKangourou != null ? topDetentionKangourou : "") + ";" +
+                (topDetentionRevNaff != null ? topDetentionRevNaff : "") + ";" +
+                (dateMajAdresse != null ? dateMajAdresse : "") + ";" +
+                (paysEmployeur != null ? paysEmployeur : "") + ";" +
+                (ffDateDernierAchat != null ? ffDateDernierAchat : "") + ";" +
+                (ffDateDernierImpaye != null ? ffDateDernierImpaye : "") + ";" +
+                (type != null ? type : "") + ";" +
+                (nomGrille != null ? nomGrille : "") + ";" +
+                (note != null ? note : "") + ";" +
+                (domaine != null ? domaine : "") + ";" +
+                (refusabiliteBaleII != null ? refusabiliteBaleII : "") + ";" +
+                (refusabilite != null ? refusabilite : "") + ";" +
+                (segment != null ? segment : "") + ";" +
+                (domiciliationsBancaires != null ? domiciliationsBancaires : "") + ";" +
+                (ficheFICP != null ? ficheFICP : "") + ";" +
+                (indicateurFauxClient != null ? indicateurFauxClient : "") + ";" +
+                (regroupementClient != null ? regroupementClient : "") + ";" +
+                (Charges != null ? Charges : "") + ";" +
+                (dateFinValiditePieceIdentite != null ? dateFinValiditePieceIdentite : "") + ";" +
+                (presenceHomonyme != null ? presenceHomonyme : "") + ";" +
+                (topRepresentantDesSARL != null ? topRepresentantDesSARL : "") + ";" +
+                (codeIdentificationDeclinaison != null ? codeIdentificationDeclinaison : "") + ";" +
+                (societesCommerciales != null ? societesCommerciales : "") + ";" +
+                (nbContratClient != null ? nbContratClient : "") + ";" +
+                (dateFinContrat != null ? dateFinContrat : "") + ";" +
+                (codePaysResidence != null ? codePaysResidence : "") + ";" +
+                (montantPensionDu != null ? montantPensionDu : "");
     }
 }

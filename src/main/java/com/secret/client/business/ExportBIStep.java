@@ -1,51 +1,47 @@
 package com.secret.client.business;
 
+import static com.secret.client.cassandra.ProgressStatus.EXPORT_BI;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import org.codehaus.jackson.map.ObjectMapper;
 import com.secret.client.cassandra.ProgressDao;
 import com.secret.client.cassandra.RequestDao;
 import com.secret.client.vo.Statuses;
 import me.prettyprint.hector.api.Keyspace;
-import org.codehaus.jackson.map.ObjectMapper;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
+public class ExportBIStep extends AbstractProgressStep {
 
-import static com.secret.client.cassandra.ProgressStatus.EXPORT_BI;
-
-public class ExportBIService extends AbstractProgressService {
-
-    private static final String EXPORT_BI_SERVICE_FETCH_SIZE = "export.bi.service.fetch.size";
-    private static final String EXPORT_BI_SERVICE_WAIT_MILLIS = "export.bi.service.wait.millis";
-    private static final String EXPORT_BI_SERVICE_LOGGING_INTERVAL = "export.bi.service.logging.interval";
-    public static final String EXPORT_BI_SERVICE_INSTANCES = "export.bi.service.instances";
+    private static final String EXPORT_BI_SERVICE_FETCH_SIZE = "export.bi.step.fetch.size";
+    private static final String EXPORT_BI_SERVICE_WAIT_MILLIS = "export.bi.step.wait.millis";
+    private static final String EXPORT_BI_SERVICE_LOGGING_INTERVAL = "export.bi.step.logging.interval";
+    public static final String EXPORT_BI_SERVICE_INSTANCES = "export.bi.step.instances";
 
     protected static AtomicLong globalRequestCount = new AtomicLong(0L);
 
     private RequestDao requestDao;
 
-    public ExportBIService(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper, RequestDao requestDao) {
+    public ExportBIStep(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper, RequestDao requestDao) {
         super(globalLatch, instanceId, keyspace, mapper);
         this.requestDao = requestDao;
     }
 
     @Override
     protected void run() throws Exception {
-        int bucket = instanceId;
-        long columnsCount = 0;
-        long from = 0L;
+        ExportBIStateHolder exportBIStateHolder = new ExportBIStateHolder(instanceId, 0, 0L);
         while (true) {
             if (shutdownCalled) {
                 break;
             }
-            Counters counters = process(bucket, columnsCount, from);
-
-            bucket = counters.bucket;
-            columnsCount = counters.columnsCount;
-            from = counters.from;
+            exportBIStateHolder = process(exportBIStateHolder);
         }
     }
 
-    protected Counters process(int bucket, long columnsCount, long from) throws InterruptedException {
+    protected ExportBIStateHolder process(ExportBIStateHolder exportBIStateHolder) throws InterruptedException {
+        int bucket = exportBIStateHolder.getBucket();
+        long columnsCount = exportBIStateHolder.getColumnsCount();
+        long from = exportBIStateHolder.getFrom();
+
         final Statuses statuses = progressDao.findPartitionKeysByStatus(EXPORT_BI, bucket, from);
         List<String> partitionKeys = statuses.getPartitionKeys();
         final int partitionKeysCount = partitionKeys.size();
@@ -67,14 +63,13 @@ public class ExportBIService extends AbstractProgressService {
                 columnsCount += partitionKeysCount;
             }
 
-
             for (String partitionKey : partitionKeys) {
                 requestDao.readOutputXom(partitionKey);
             }
         } else {
             Thread.sleep(sleepDelay);
         }
-        return new Counters(bucket, columnsCount, from);
+        return new ExportBIStateHolder(bucket, columnsCount, from);
     }
 
     private void periodicRequestLog(int partitionKeysCount) {
@@ -100,12 +95,12 @@ public class ExportBIService extends AbstractProgressService {
         globalLatch.countDown();
     }
 
-    protected static class Counters {
+    protected static class ExportBIStateHolder {
         private int bucket;
         private long columnsCount;
         private long from;
 
-        public Counters(int bucket, long columnsCount, long from) {
+        public ExportBIStateHolder(int bucket, long columnsCount, long from) {
             this.bucket = bucket;
             this.columnsCount = columnsCount;
             this.from = from;

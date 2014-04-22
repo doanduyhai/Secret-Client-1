@@ -27,9 +27,9 @@ import static com.secret.client.cassandra.ProgressStatus.CLIENT_IMPORTED;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DataLoaderServiceTest {
+public class DataLoaderStepTest {
 
-    private DataLoaderService service;
+    private DataLoaderStep service;
 
     @Mock
     private Keyspace keyspace;
@@ -63,7 +63,7 @@ public class DataLoaderServiceTest {
 
     @Before
     public void setUp() {
-        service = new DataLoaderService(null, keyspace, CassandraStressMain.buildJacksonMapper(), dataIterator);
+        service = new DataLoaderStep(null, keyspace, CassandraStressMain.buildJacksonMapper(), dataIterator);
         service.batchInsertDelay = 1;
         service.clientDao = clientDao;
         service.contratDao = contractDao;

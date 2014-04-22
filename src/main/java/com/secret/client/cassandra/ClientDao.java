@@ -1,13 +1,11 @@
 package com.secret.client.cassandra;
 
+import static me.prettyprint.hector.api.factory.HFactory.createColumn;
+import java.io.IOException;
+import org.codehaus.jackson.map.ObjectMapper;
 import com.secret.client.model.Client;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.mutation.Mutator;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import java.io.IOException;
-
-import static me.prettyprint.hector.api.factory.HFactory.createColumn;
 
 public class ClientDao extends GenericCassandraDao<String, String, byte[]> {
 
@@ -29,7 +27,7 @@ public class ClientDao extends GenericCassandraDao<String, String, byte[]> {
 
         final String idMenage = client.getIdMen();
         final String numeroClient = client.getNumeroClient();
-        final String partitionKey = idMenage+":"+numeroClient;
+        final String partitionKey = idMenage + ":" + numeroClient;
 
         try {
             final byte[] payload = mapper.writeValueAsBytes(client);
@@ -40,8 +38,8 @@ public class ClientDao extends GenericCassandraDao<String, String, byte[]> {
         return partitionKey;
     }
 
-    public void readClient(String partitionKey) {
-        getValue(partitionKey,PAYLOAD);
+    public byte[] readClient(String partitionKey) {
+        return getValue(partitionKey, PAYLOAD);
     }
 
 

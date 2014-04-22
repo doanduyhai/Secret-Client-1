@@ -2,8 +2,7 @@ package com.secret.client.random;
 
 import static com.google.common.collect.ImmutableMap.of;
 import static java.util.Arrays.asList;
-import static org.fest.assertions.api.Assertions.*;
-
+import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
@@ -29,11 +28,11 @@ public class RandomDataIteratorTest {
         final Contract contrat3 = new Contract("conjoint1", "contrat3");
         final Contract contrat4 = new Contract("client2", "contrat4");
 
-        Map<String,Client> clientsMap = of("client1", client1, "conjoint1", conjoint1, "client2", client2);
-        Map<String,List<Contract>> contratsMap = of("client1", asList(contrat1, contrat2), "conjoint1",
-                                                   asList(contrat3), "client2", asList(contrat4));
+        Map<String, Client> clientsMap = of("client1", client1, "conjoint1", conjoint1, "client2", client2);
+        Map<String, List<Contract>> contratsMap = of("client1", asList(contrat1, contrat2), "conjoint1",
+                asList(contrat3), "client2", asList(contrat4));
 
-        final RandomDataIterator iterator = new RandomDataIterator(1000,clientsMap,contratsMap);
+        final RandomDataIterator iterator = new RandomDataIterator(1000, clientsMap, contratsMap);
 
         //When
         final List<Menage> menages = iterator.getMenages();
@@ -47,8 +46,7 @@ public class RandomDataIteratorTest {
 
         final Map<String, List<Contract>> builtContratsMap1 = menage1.getContratsMap();
         assertThat(builtContratsMap1).containsKey("client1").containsKey("conjoint1");
-        assertThat(builtContratsMap1).containsValue(asList(contrat1,contrat2)).containsValue(asList(contrat3));
-
+        assertThat(builtContratsMap1).containsValue(asList(contrat1, contrat2)).containsValue(asList(contrat3));
 
         assertThat(menage2.getClientsMap()).containsKey("client2").containsValue(client2);
 
@@ -60,19 +58,19 @@ public class RandomDataIteratorTest {
     @Test
     public void should_iterate_on_menage_until_reaching_target_client_number() throws Exception {
         //Given
-        final Client client1 = new Client("client1", null,"menage1");
-        final Client client2 = new Client("client2", null,"menage2");
-        final Client client3 = new Client("client3", null,"menage3");
-        final Contract contrat1 = new Contract("client1", "contrat1","menage1");
-        final Contract contrat2 = new Contract("client2", "contrat2","menage2");
-        final Contract contrat3 = new Contract("client3", "contrat31","menage31");
-        final Contract contrat4 = new Contract("client3", "contrat32","menage32");
+        final Client client1 = new Client("client1", null, "menage1");
+        final Client client2 = new Client("client2", null, "menage2");
+        final Client client3 = new Client("client3", null, "menage3");
+        final Contract contrat1 = new Contract("client1", "contrat1", "menage1");
+        final Contract contrat2 = new Contract("client2", "contrat2", "menage2");
+        final Contract contrat3 = new Contract("client3", "contrat31", "menage31");
+        final Contract contrat4 = new Contract("client3", "contrat32", "menage32");
 
-        Map<String,Client> clientsMap = of("client1", client1, "client2", client2, "client3", client3);
-        Map<String,List<Contract>> contratsMap = of("client1", asList(contrat1), "client2",asList(contrat2), "client3", asList(contrat3,contrat4));
+        Map<String, Client> clientsMap = of("client1", client1, "client2", client2, "client3", client3);
+        Map<String, List<Contract>> contratsMap = of("client1", asList(contrat1), "client2", asList(contrat2), "client3", asList(contrat3, contrat4));
 
         //When
-        final RandomDataIterator iterator = new RandomDataIterator(5,clientsMap,contratsMap);
+        final RandomDataIterator iterator = new RandomDataIterator(5, clientsMap, contratsMap);
 
         //Then
         assertThat(iterator.hasNext()).isTrue();
@@ -93,7 +91,6 @@ public class RandomDataIteratorTest {
         assertThat(iterator.hasNext()).isFalse();
         assertThat(iterator.next()).isNull();
 
-
         assertThat(menage1.getClientsMap()).hasSize(1);
         assertThat(menage1.getClientsMap().values().iterator().next().getIdMen()).isEqualTo("menage1");
         assertThat(menage1.getContratsMap()).hasSize(1);
@@ -108,7 +105,6 @@ public class RandomDataIteratorTest {
         assertThat(contratsList2).hasSize(1);
         assertThat(contratsList2.get(0).getIdMen()).isEqualTo("menage2");
 
-
         assertThat(menage3.getClientsMap()).hasSize(1);
         assertThat(menage3.getClientsMap().values().iterator().next().getIdMen()).isEqualTo("menage3");
         assertThat(menage3.getContratsMap()).hasSize(1);
@@ -116,7 +112,6 @@ public class RandomDataIteratorTest {
         assertThat(contratsList3).hasSize(2);
         assertThat(contratsList3.get(0).getIdMen()).isEqualTo("menage31");
         assertThat(contratsList3.get(1).getIdMen()).isEqualTo("menage32");
-
 
         assertThat(menage4.getClientsMap()).hasSize(1);
         assertThat(menage4.getClientsMap().values().iterator().next().getIdMen()).isEqualTo("menage1");

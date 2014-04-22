@@ -1,4 +1,4 @@
-package com.secret.client.init;
+package com.secret.client.property;
 
 import java.io.FileInputStream;
 import java.io.IOException;

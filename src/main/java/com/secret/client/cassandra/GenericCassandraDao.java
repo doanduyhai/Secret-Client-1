@@ -1,5 +1,6 @@
 package com.secret.client.cassandra;
 
+import static me.prettyprint.hector.api.factory.HFactory.createCounterColumnQuery;
 import static me.prettyprint.hector.api.factory.HFactory.createCounterSliceQuery;
 import static me.prettyprint.hector.api.factory.HFactory.createIndexedSlicesQuery;
 import static me.prettyprint.hector.api.factory.HFactory.createSliceQuery;
@@ -30,6 +31,7 @@ import me.prettyprint.hector.api.beans.OrderedRows;
 import me.prettyprint.hector.api.beans.Row;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
+import me.prettyprint.hector.api.query.CounterQuery;
 import me.prettyprint.hector.api.query.SliceCounterQuery;
 import me.prettyprint.hector.api.query.SliceQuery;
 
@@ -56,12 +58,13 @@ public abstract class GenericCassandraDao<K, N, V> {
 
     public int DEFAULT_LENGTH = 50;
 
-    private Function<Row<K,N,V>,K> rowToPartitionKeyFunction = new Function<Row<K, N, V>, K>() {
+    private Function<Row<K, N, V>, K> rowToPartitionKeyFunction = new Function<Row<K, N, V>, K>() {
         @Override
         public K apply(Row<K, N, V> row) {
             return row.getKey();
         }
-    };;
+    };
+    ;
 
     protected GenericCassandraDao(Keyspace keyspace) {
         this.keyspace = keyspace;
@@ -157,7 +160,7 @@ public abstract class GenericCassandraDao<K, N, V> {
                 .setColumnFamily(columnFamily).setKey(key).setRange(startName, endName, reverse, count).execute()
                 .get().getColumns();
 
-        List<Pair<N, V>> columns = new ArrayList<Pair<N,V>>();
+        List<Pair<N, V>> columns = new ArrayList<Pair<N, V>>();
         for (HColumn<N, V> column : results) {
             columns.add(Pair.create(column.getName(), column.getValue()));
         }
@@ -184,6 +187,14 @@ public abstract class GenericCassandraDao<K, N, V> {
                 .setColumnFamily(columnFamily).setKey(key);
 
         return counterQuery.setRange(startName, (N) null, reverse, size).execute().get().getColumns();
+    }
+
+    public Long getCounter(K key, N name) {
+        CounterQuery<K, N> counterQuery = createCounterColumnQuery(keyspace, keySerializer, columnNameSerializer)
+                .setKey(key).setName(name).setColumnFamily(columnFamily);
+
+        final HCounterColumn<N> counterColumn = counterQuery.execute().get();
+        return counterColumn != null ? counterColumn.getValue() : null;
     }
 
     public void removeRow(K key) {
@@ -214,21 +225,21 @@ public abstract class GenericCassandraDao<K, N, V> {
         }
     }
 
-    public List<K> indexedQuery(N columnName,V value,int limit) {
+    public List<K> indexedQuery(N columnName, V value, int limit) {
         List<K> partitionKeys = new ArrayList<K>();
 
-        final OrderedRows<K,N,V> rows = createIndexedSlicesQuery(keyspace,keySerializer,columnNameSerializer,valueSerializer)
+        final OrderedRows<K, N, V> rows = createIndexedSlicesQuery(keyspace, keySerializer, columnNameSerializer, valueSerializer)
                 .setColumnFamily(columnFamily)
-                .setRowCount(limit).addEqualsExpression(columnName,value).setReturnKeysOnly()
+                .setRowCount(limit).addEqualsExpression(columnName, value).setReturnKeysOnly()
                 .execute().get();
 
-        if(rows!= null && rows.getList() != null && rows.getList().size()>0) {
+        if (rows != null && rows.getList() != null && rows.getList().size() > 0) {
             partitionKeys = FluentIterable.from(rows.getList()).transform(rowToPartitionKeyFunction).toList();
         }
         return partitionKeys;
     }
 
     public Mutator<K> createMutator() {
-        return HFactory.createMutator(keyspace,keySerializer);
+        return HFactory.createMutator(keyspace, keySerializer);
     }
 }

@@ -1,19 +1,20 @@
-package com.secret.client.init;
+package com.secret.client.property;
 
-import static org.fest.assertions.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
+import com.secret.client.csv.CsvDataLoaderOld;
 import com.secret.client.model.Client;
 import com.secret.client.model.Contract;
 
 @RunWith(MockitoJUnitRunner.class)
-public class CsvDataLoaderTest {
+public class CsvDataLoaderOldTest {
 
-    private CsvDataLoader loader = new CsvDataLoader();
+    private CsvDataLoaderOld loader = new CsvDataLoaderOld();
 
     @Test
     public void should_load_clients_from_csv() throws Exception {

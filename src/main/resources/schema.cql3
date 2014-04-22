@@ -25,11 +25,11 @@ CREATE TABLE "Contracts" (
   compaction={'min_threshold': '0', 'class': 'SizeTieredCompactionStrategy', 'max_threshold': '0'};
 
 CREATE TABLE progress (
-  key text,
-  key2 int,
-  column1 bigint,
+  status text,
+  bucket int,
+  partitionKey bigint,
   value text,
-  PRIMARY KEY ((key, key2), column1)
+  PRIMARY KEY ((status, bucket), partitionKey)
 ) WITH read_repair_chance=0 AND
   replicate_on_write='false' AND
   compaction={'class': 'SizeTieredCompactionStrategy', 'min_sstable_size': '150', 'bucket_low': '0.8', 'bucket_high': '1.2'};
@@ -41,3 +41,13 @@ CREATE TABLE "odmResIO" (
 ) WITH COMPACT STORAGE AND
   read_repair_chance=0 AND
   replicate_on_write='false';
+
+CREATE TABLE "ProgressCounter" (
+  status text,
+  instance_id int,
+  bucket int,
+  count counter,
+  PRIMARY KEY((status,instance_id),bucket)
+) WITH read_repair_chance=0 AND
+  replicate_on_write='false' AND
+  compaction={'min_threshold': '0', 'class': 'SizeTieredCompactionStrategy', 'max_threshold': '0'};

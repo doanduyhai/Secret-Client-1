@@ -7,11 +7,11 @@ import com.secret.client.cassandra.ProgressDao;
 import me.prettyprint.hector.api.Keyspace;
 import org.codehaus.jackson.map.ObjectMapper;
 
-public abstract class AbstractProgressService extends AbstractInjectorService {
+public abstract class AbstractProgressStep extends AbstractInjectorStep {
 
     protected ClientDao clientDao;
 
-    protected ContractDao contratDao;
+    protected ContractDao contractDao;
 
     protected ProgressDao progressDao;
 
@@ -24,7 +24,7 @@ public abstract class AbstractProgressService extends AbstractInjectorService {
     protected int instancesCount = 1;
     protected int instanceId = 1;
 
-    protected AbstractProgressService(CountDownLatch globalLatch,int instanceId,Keyspace keyspace,ObjectMapper mapper) {
+    protected AbstractProgressStep(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper) {
         super(globalLatch,keyspace,mapper);
         this.instanceId = instanceId;
     }

@@ -3,7 +3,7 @@ package com.secret.client.cassandra;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang.StringUtils;
-import com.secret.client.init.PropertyLoader;
+import com.secret.client.property.PropertyLoader;
 import com.google.common.base.Optional;
 import me.prettyprint.cassandra.model.AllOneConsistencyLevelPolicy;
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;

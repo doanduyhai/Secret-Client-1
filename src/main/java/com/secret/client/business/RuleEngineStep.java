@@ -1,56 +1,54 @@
 package com.secret.client.business;
 
+import static com.secret.client.cassandra.ProgressStatus.EXPORT_BI;
+import static com.secret.client.cassandra.ProgressStatus.ODM_RES;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.secret.client.cassandra.ProgressDao;
 import com.secret.client.cassandra.RequestDao;
 import com.secret.client.vo.Statuses;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.mutation.Mutator;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
+public class RuleEngineStep extends AbstractProgressStep {
 
-import static com.secret.client.cassandra.ProgressStatus.EXPORT_BI;
-import static com.secret.client.cassandra.ProgressStatus.ODM_RES;
+    protected static final Logger LOGGER = LoggerFactory.getLogger(RuleEngineStep.class);
 
-public class RuleEngineService extends AbstractProgressService {
-
-    protected static final Logger LOGGER = LoggerFactory.getLogger(RuleEngineService.class);
-
-    private static final String RULE_ENGINE_SERVICE_FETCH_SIZE = "rule.engine.service.fetch.size";
-    private static final String RULE_ENGINE_WAIT_IN_MILLIS = "rule.engine.service.wait.millis";
-    private static final String RULE_ENGINE_LOGGING_INTERVAL = "rule.engine.service.logging.interval";
-    public static final String RULE_ENGINE_SERVICE_INSTANCES = "rule.engine.service.instances";
+    private static final String RULE_ENGINE_SERVICE_FETCH_SIZE = "rule.engine.step.fetch.size";
+    private static final String RULE_ENGINE_WAIT_IN_MILLIS = "rule.engine.step.wait.millis";
+    private static final String RULE_ENGINE_LOGGING_INTERVAL = "rule.engine.step.logging.interval";
+    public static final String RULE_ENGINE_SERVICE_INSTANCES = "rule.engine.step.instances";
 
     protected static AtomicLong globalRequestCount = new AtomicLong(0L);
 
     private RequestDao requestDao;
 
-    public RuleEngineService(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper, RequestDao requestDao) {
+    public RuleEngineStep(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper, RequestDao requestDao) {
         super(globalLatch, instanceId, keyspace, mapper);
         this.requestDao = requestDao;
     }
 
     @Override
     protected void run() throws Exception {
-        int bucket = instanceId;
-        long columnsCount = 0;
-        long from = 0L;
+        RuleEngineStateHolder ruleEngineStateHolder = new RuleEngineStateHolder(instanceId, 0, 0L);
         while (true) {
             if (shutdownCalled) {
                 break;
             }
-            Counters counters = process(bucket, columnsCount, from);
-            bucket = counters.bucket;
-            columnsCount = counters.columnsCount;
-            from = counters.from;
+            ruleEngineStateHolder = process(ruleEngineStateHolder);
         }
     }
 
-    protected Counters process(int bucket, long columnsCount, long from) throws InterruptedException {
+    protected RuleEngineStateHolder process(RuleEngineStateHolder ruleEngineStateHolder) throws InterruptedException {
+
+        int bucket = ruleEngineStateHolder.getBucket();
+        long columnsCount = ruleEngineStateHolder.getColumnsCount();
+        long from = ruleEngineStateHolder.getFrom();
+
         final Statuses statuses = progressDao.findPartitionKeysByStatus(ODM_RES, bucket, from);
         List<String> partitionKeys = statuses.getPartitionKeys();
 
@@ -83,7 +81,7 @@ public class RuleEngineService extends AbstractProgressService {
         } else {
             Thread.sleep(sleepDelay);
         }
-        return new Counters(bucket, columnsCount, from);
+        return new RuleEngineStateHolder(bucket, columnsCount, from);
     }
 
     private void periodicRequestLog(int partitionKeysCount) {
@@ -117,12 +115,12 @@ public class RuleEngineService extends AbstractProgressService {
         globalLatch.countDown();
     }
 
-    protected class Counters {
+    protected static class RuleEngineStateHolder {
         private int bucket;
         private long columnsCount;
         private long from;
 
-        public Counters(int bucket, long columnsCount, long from) {
+        public RuleEngineStateHolder(int bucket, long columnsCount, long from) {
             this.bucket = bucket;
             this.columnsCount = columnsCount;
             this.from = from;

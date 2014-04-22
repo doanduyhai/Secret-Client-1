@@ -17,8 +17,7 @@
         <jackson.version>1.9.13</jackson.version>
         <slf4j.version>1.7.2</slf4j.version>
 
-        <fest.assert.version>2.0M8</fest.assert.version>
-        <fest.util.version>1.2.3</fest.util.version>
+        <assertj.version>1.5.0</assertj.version>
         <junit.version>4.11</junit.version>
         <mockito.version>1.9.5</mockito.version>
         <powermock.version>1.5</powermock.version>
@@ -93,15 +92,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.easytesting</groupId>
-                <artifactId>fest-assert-core</artifactId>
-                <version>${fest.assert.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.easytesting</groupId>
-                <artifactId>fest-util</artifactId>
-                <version>${fest.util.version}</version>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
             </dependency>
 
         </dependencies>
@@ -159,14 +152,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-assert-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.easytesting</groupId>
-            <artifactId>fest-util</artifactId>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
