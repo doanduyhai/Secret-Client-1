@@ -68,7 +68,6 @@ public class ContractLoaderStep extends AbstractInjectorStep {
         this.batchInsertSize = propertyLoader.getInt(CONTRACT_LOADER_BATCH_INSERT_SIZE);
         this.batchInsertDelay = propertyLoader.getInt(CONTRACT_LOADER_WAIT_IN_MILLIS);
         this.loggingInterval = propertyLoader.getInt(CONTRACT_LOADER_LOGGING_INTERVAL);
-        this.maximumRowSize = propertyLoader.getInt(MAXIMUM_ROW_SIZE);
     }
 
     @Override
