@@ -3,8 +3,8 @@ package com.secret.client.cassandra;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang.StringUtils;
-import com.secret.client.property.PropertyLoader;
 import com.google.common.base.Optional;
+import com.secret.client.property.PropertyLoader;
 import me.prettyprint.cassandra.model.AllOneConsistencyLevelPolicy;
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;
 import me.prettyprint.hector.api.Cluster;
@@ -48,7 +48,7 @@ public class HectorBootstrapper {
         final Integer cassandraThriftPort = propertyLoader.getInt(THRIFT_PORT);
         Map<String, String> credentials = null;
         if (StringUtils.isNotBlank(cassandraLogin)) {
-            credentials = new HashMap<String,String>();
+            credentials = new HashMap<String, String>();
             credentials.put(USERNAME_KEY, cassandraLogin);
             credentials.put(PASSWORD_KEY, cassandraPassword);
         }
@@ -62,9 +62,6 @@ public class HectorBootstrapper {
 
     }
 
-    public Cluster getCluster() {
-        return cluster;
-    }
 
     public Keyspace getKeyspace() {
         return keyspace;
@@ -72,9 +69,10 @@ public class HectorBootstrapper {
 
 
     public void truncateTables() {
-        cluster.truncate(keyspace.getKeyspaceName(),CLIENT_TABLE);
-        cluster.truncate(keyspace.getKeyspaceName(),CONTRAT_TABLE);
+        cluster.truncate(keyspace.getKeyspaceName(), CLIENT_TABLE);
+        cluster.truncate(keyspace.getKeyspaceName(), CONTRAT_TABLE);
         cluster.truncate(keyspace.getKeyspaceName(), PROGRESS_TABLE);
-        cluster.truncate(keyspace.getKeyspaceName(),REQUEST_TABLE);
+        cluster.truncate(keyspace.getKeyspaceName(), REQUEST_TABLE);
+
     }
 }

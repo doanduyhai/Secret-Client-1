@@ -40,13 +40,13 @@ public class ClientLoaderStepTest {
     @Mock
     private Mutator<Composite> progressMutator;
 
+    private int instanceId = 1;
+
     @Before
     public void setUp() {
-        step = new ClientLoaderStep(null, keyspace, null, loader);
-        step.delayInSecond = 1;
+        step = new ClientLoaderStep(null, keyspace, null, loader, instanceId);
         step.loggingInterval = 1;
         step.batchInsertDelay = 1;
-        step.maximumRowSize = 100;
         step.clientDao = clientDao;
         step.progressDao = progressDao;
         when(clientDao.createMutator()).thenReturn(clientMutator);
@@ -54,7 +54,7 @@ public class ClientLoaderStepTest {
     }
 
     @Test
-    public void should_insert_clients_in_the_same_bucket() throws Exception {
+    public void should_insert_clients() throws Exception {
         //Given
         step.batchInsertSize = 1;
         String partitionKey = random(10);
@@ -68,27 +68,9 @@ public class ClientLoaderStepTest {
         step.run();
 
         //Then
-        verify(progressDao).insertPartitionKeyForStatus(progressMutator, CLIENT_IMPORTED, 1, partitionKey);
+        verify(progressDao).insertPartitionKeyForStatus(progressMutator, CLIENT_IMPORTED, instanceId, partitionKey);
     }
 
-    @Test
-    public void should_insert_clients_and_change_bucket() throws Exception {
-        //Given
-        step.batchInsertSize = 1;
-        step.maximumRowSize = 0;
-        String partitionKey = random(10);
-        Client client = new Client();
-
-        when(loader.hasNext()).thenReturn(true, false);
-        when(loader.next()).thenReturn(client);
-        when(clientDao.insertClient(clientMutator, client)).thenReturn(partitionKey);
-
-        //When
-        step.run();
-
-        //Then
-        verify(progressDao).insertPartitionKeyForStatus(progressMutator, CLIENT_IMPORTED, 2, partitionKey);
-    }
 
     @Test
     public void should_insert_clients_and_flush() throws Exception {
@@ -105,7 +87,7 @@ public class ClientLoaderStepTest {
         step.run();
 
         //Then
-        verify(progressDao).insertPartitionKeyForStatus(progressMutator, CLIENT_IMPORTED, 1, partitionKey);
+        verify(progressDao).insertPartitionKeyForStatus(progressMutator, CLIENT_IMPORTED, instanceId, partitionKey);
         verify(clientMutator).execute();
         verify(progressMutator).execute();
     }

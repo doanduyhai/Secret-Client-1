@@ -1,6 +1,5 @@
 package com.secret.client.business;
 
-import static com.secret.client.business.RequestService.RequestStateHolder;
 import static com.secret.client.cassandra.ProgressStatus.CLIENT_IMPORTED;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -18,10 +17,10 @@ import me.prettyprint.hector.api.Keyspace;
 public class GoOneStep extends AbstractProgressStep {
     protected static final Logger LOGGER = LoggerFactory.getLogger(GoOneStep.class);
 
-    private static final String GO_ONE_SERVICE_FETCH_SIZE = "go.one.step.fetch.size";
-    private static final String GO_ONE_SERVICE_WAIT_IN_MILLIS = "go.one.step.wait.millis";
-    private static final String GO_ONE_SERVICE_LOGGING_INTERVAL = "go.one.step.logging.interval";
-    public static final String GO_ONE_SERVICE_INSTANCES = "go.one.step.instances";
+    private static final String GO_ONE_STEP_FETCH_SIZE = "go.one.step.fetch.size";
+    private static final String GO_ONE_STEP_WAIT_IN_MILLIS = "go.one.step.wait.millis";
+    private static final String GO_ONE_STEP_LOGGING_INTERVAL = "go.one.step.logging.interval";
+
 
     protected static AtomicLong globalClientCount = new AtomicLong(0L);
 
@@ -32,13 +31,13 @@ public class GoOneStep extends AbstractProgressStep {
     public GoOneStep(CountDownLatch globalLatch, int instanceId, Keyspace keyspace, ObjectMapper mapper, RequestDao requestDao) {
         super(globalLatch, instanceId, keyspace, mapper);
         this.requestDao = requestDao;
-        this.clientContractMatchingService = new ClientContractMatchingService(keyspace, mapper, instanceId);
+        this.clientContractMatchingService = new ClientContractMatchingService(keyspace, mapper);
     }
 
     @Override
     protected void run() throws Exception {
 
-        GoOneStateHolder goOneStateHolder = new GoOneStateHolder(instanceId, 0L, new RequestStateHolder(instanceId, 0L, 0), 0L, null);
+        GoOneStateHolder goOneStateHolder = new GoOneStateHolder(0, 0L);
         while (true) {
             if (shutdownCalled) {
                 break;
@@ -50,11 +49,9 @@ public class GoOneStep extends AbstractProgressStep {
 
     protected GoOneStateHolder process(GoOneStateHolder goOneStateHolder) throws InterruptedException {
         Long from = goOneStateHolder.getFrom();
-        int clientBucket = goOneStateHolder.getClientBucket();
-        long clientColumnsCount = goOneStateHolder.getClientColumnsCount();
-        RequestStateHolder requestStateHolder = goOneStateHolder.getRequestStateHolder();
+        int newBatchClientCount = goOneStateHolder.getBatchClientCount();
 
-        final Statuses statuses = progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, clientBucket, from);
+        final Statuses statuses = progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, instanceId, from);
         List<String> partitionKeys = statuses.getPartitionKeys();
 
         final int partitionKeysCount = partitionKeys.size();
@@ -64,38 +61,13 @@ public class GoOneStep extends AbstractProgressStep {
 
             periodicClientLog(partitionKeysCount);
 
-            final long newClientColumnCount = clientColumnsCount + partitionKeysCount;
-
-            // Check whether there are extra client for this current bucket
-            if (clientColumnsCount < maximumRowSize && newClientColumnCount >= maximumRowSize) {
-                goOneStateHolder.setExtraClientCount(clientContractMatchingService.getExtraClientsForBucket(clientBucket));
-            }
-
-            long maxPartitionSize = maximumRowSize + goOneStateHolder.getSafeExtraClientCount();
-            if (newClientColumnCount > maxPartitionSize) {
-
-                LOGGER.info("CLIENT_IMPORTED bucket transition : {} -> {} for clientColumnCount {}", clientBucket,
-                        clientBucket + instancesCount, newClientColumnCount);
-
-                clientBucket += instancesCount;
-
-                // Compute column count for next bucket
-                // clientColumnsCount = newClientColumnCount - maximumRowSize;
-
-                // Reset client column count
-                clientColumnsCount = 0;
-
-            } else {
-                clientColumnsCount = newClientColumnCount;
-            }
-
-            clientContractMatchingService.processClient(partitionKeys, clientBucket, instancesCount);
-            requestStateHolder = requestService.process(requestStateHolder, partitionKeysCount);
+            clientContractMatchingService.processClient(partitionKeys);
+            newBatchClientCount = requestService.process(newBatchClientCount, partitionKeysCount);
 
         } else {
             Thread.sleep(sleepDelay);
         }
-        return goOneStateHolder.duplicate(clientBucket, clientColumnsCount, requestStateHolder, from);
+        return new GoOneStateHolder(newBatchClientCount, from);
     }
 
     private void periodicClientLog(int partitionKeysCount) {
@@ -108,15 +80,13 @@ public class GoOneStep extends AbstractProgressStep {
     @Override
     protected void startUp() throws Exception {
         LOGGER.info("Starting GoOneStep");
-        this.fetchSize = propertyLoader.getInt(GO_ONE_SERVICE_FETCH_SIZE);
-        this.sleepDelay = propertyLoader.getInt(GO_ONE_SERVICE_WAIT_IN_MILLIS);
-        this.loggingInterval = propertyLoader.getInt(GO_ONE_SERVICE_LOGGING_INTERVAL);
-        this.maximumRowSize = propertyLoader.getInt(MAXIMUM_ROW_SIZE);
-        this.instancesCount = propertyLoader.getInt(GO_ONE_SERVICE_INSTANCES);
+        this.fetchSize = propertyLoader.getInt(GO_ONE_STEP_FETCH_SIZE);
+        this.sleepDelay = propertyLoader.getInt(GO_ONE_STEP_WAIT_IN_MILLIS);
+        this.loggingInterval = propertyLoader.getInt(GO_ONE_STEP_LOGGING_INTERVAL);
         this.clientDao = new ClientDao(keyspace, mapper);
         this.contractDao = new ContractDao(keyspace, mapper);
         this.progressDao = new ProgressDao(keyspace, fetchSize);
-        this.requestService = new RequestService(requestDao, progressDao, maximumRowSize, instancesCount, loggingInterval);
+        this.requestService = new RequestService(requestDao, progressDao, instanceId, loggingInterval);
     }
 
     @Override
@@ -126,46 +96,20 @@ public class GoOneStep extends AbstractProgressStep {
     }
 
     protected static class GoOneStateHolder {
-        private int clientBucket;
-        private long clientColumnsCount;
-        private RequestStateHolder requestStateHolder;
+        private int batchClientCount;
         private Long from;
-        private Long extraClientCount;
 
-        public GoOneStateHolder(int clientBucket, long clientColumnsCount, RequestStateHolder requestStateHolder, Long from, Long extraClientCount) {
-            this.clientBucket = clientBucket;
-            this.clientColumnsCount = clientColumnsCount;
-            this.requestStateHolder = requestStateHolder;
+        public GoOneStateHolder(int batchClientCount, Long from) {
+            this.batchClientCount = batchClientCount;
             this.from = from;
-            this.extraClientCount = extraClientCount;
         }
 
-        public GoOneStateHolder duplicate(int clientBucket, long clientColumnsCount, RequestStateHolder requestStateHolder, Long from) {
-            return new GoOneStateHolder(clientBucket, clientColumnsCount, requestStateHolder, from, extraClientCount);
-        }
-
-        public int getClientBucket() {
-            return clientBucket;
-        }
-
-        public long getClientColumnsCount() {
-            return clientColumnsCount;
-        }
-
-        public RequestStateHolder getRequestStateHolder() {
-            return requestStateHolder;
+        public int getBatchClientCount() {
+            return batchClientCount;
         }
 
         public Long getFrom() {
             return from;
-        }
-
-        public long getSafeExtraClientCount() {
-            return extraClientCount != null ? extraClientCount : 0L;
-        }
-
-        public void setExtraClientCount(Long extraClientCount) {
-            this.extraClientCount = extraClientCount;
         }
     }
 }

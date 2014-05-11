@@ -19,6 +19,10 @@ public class ContractDataWriter extends CsvDataWriter {
         }
     }
 
+    public void writeContract(Contract contract) {
+        writer.writeNext(contract.toCsv().split(";"));
+    }
+
     public void flush() throws IOException {
         writer.close();
     }

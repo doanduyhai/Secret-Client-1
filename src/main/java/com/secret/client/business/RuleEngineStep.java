@@ -18,10 +18,9 @@ public class RuleEngineStep extends AbstractProgressStep {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(RuleEngineStep.class);
 
-    private static final String RULE_ENGINE_SERVICE_FETCH_SIZE = "rule.engine.step.fetch.size";
-    private static final String RULE_ENGINE_WAIT_IN_MILLIS = "rule.engine.step.wait.millis";
-    private static final String RULE_ENGINE_LOGGING_INTERVAL = "rule.engine.step.logging.interval";
-    public static final String RULE_ENGINE_SERVICE_INSTANCES = "rule.engine.step.instances";
+    private static final String RULE_ENGINE_STEP_FETCH_SIZE = "rule.engine.step.fetch.size";
+    private static final String RULE_ENGINE_STEP_WAIT_IN_MILLIS = "rule.engine.step.wait.millis";
+    private static final String RULE_ENGINE_STEP_LOGGING_INTERVAL = "rule.engine.step.logging.interval";
 
     protected static AtomicLong globalRequestCount = new AtomicLong(0L);
 
@@ -34,22 +33,20 @@ public class RuleEngineStep extends AbstractProgressStep {
 
     @Override
     protected void run() throws Exception {
-        RuleEngineStateHolder ruleEngineStateHolder = new RuleEngineStateHolder(instanceId, 0, 0L);
+        Long from = 0L;
         while (true) {
             if (shutdownCalled) {
                 break;
             }
-            ruleEngineStateHolder = process(ruleEngineStateHolder);
+            from = process(from);
         }
     }
 
-    protected RuleEngineStateHolder process(RuleEngineStateHolder ruleEngineStateHolder) throws InterruptedException {
+    protected long process(long oldFrom) throws InterruptedException {
 
-        int bucket = ruleEngineStateHolder.getBucket();
-        long columnsCount = ruleEngineStateHolder.getColumnsCount();
-        long from = ruleEngineStateHolder.getFrom();
+        long from = oldFrom;
 
-        final Statuses statuses = progressDao.findPartitionKeysByStatus(ODM_RES, bucket, from);
+        final Statuses statuses = progressDao.findPartitionKeysByStatus(ODM_RES, instanceId, from);
         List<String> partitionKeys = statuses.getPartitionKeys();
 
         final int partitionKeysCount = partitionKeys.size();
@@ -61,27 +58,11 @@ public class RuleEngineStep extends AbstractProgressStep {
 
             insertOutputXOM(partitionKeys);
             LOGGER.info("Inserting EXPORT_BI : {}", partitionKeysCount);
-
-            final long newColumnCount = columnsCount + partitionKeysCount;
-            if (newColumnCount > maximumRowSize) {
-                Long remainingForCurrentBucket = maximumRowSize - columnsCount;
-                progressDao.insertPartitionKeysForStatus(EXPORT_BI, bucket, partitionKeys.subList(0, remainingForCurrentBucket.intValue()));
-                LOGGER.info("EXPORT_BI bucket transition : {} -> {} for requestColumnCount {}", bucket, bucket + instancesCount, newColumnCount);
-                bucket += instancesCount;
-                progressDao.insertPartitionKeysForStatus(EXPORT_BI, bucket, partitionKeys.subList(remainingForCurrentBucket.intValue(), partitionKeysCount));
-
-                // Compute column count for next bucket
-                columnsCount = newColumnCount - maximumRowSize;
-
-
-            } else {
-                progressDao.insertPartitionKeysForStatus(EXPORT_BI, bucket, partitionKeys);
-                columnsCount += partitionKeysCount;
-            }
+            progressDao.insertPartitionKeysForStatus(EXPORT_BI, instanceId, partitionKeys);
         } else {
             Thread.sleep(sleepDelay);
         }
-        return new RuleEngineStateHolder(bucket, columnsCount, from);
+        return from;
     }
 
     private void periodicRequestLog(int partitionKeysCount) {
@@ -101,11 +82,10 @@ public class RuleEngineStep extends AbstractProgressStep {
     @Override
     protected void startUp() throws Exception {
         LOGGER.info("Starting RuleEngineService");
-        this.fetchSize = propertyLoader.getInt(RULE_ENGINE_SERVICE_FETCH_SIZE);
-        this.sleepDelay = propertyLoader.getInt(RULE_ENGINE_WAIT_IN_MILLIS);
-        this.loggingInterval = propertyLoader.getInt(RULE_ENGINE_LOGGING_INTERVAL);
-        this.maximumRowSize = propertyLoader.getInt(MAXIMUM_ROW_SIZE);
-        this.instancesCount = propertyLoader.getInt(RULE_ENGINE_SERVICE_INSTANCES);
+        this.fetchSize = propertyLoader.getInt(RULE_ENGINE_STEP_FETCH_SIZE);
+        this.sleepDelay = propertyLoader.getInt(RULE_ENGINE_STEP_WAIT_IN_MILLIS);
+        this.loggingInterval = propertyLoader.getInt(RULE_ENGINE_STEP_LOGGING_INTERVAL);
+
         this.progressDao = new ProgressDao(keyspace, fetchSize);
     }
 
@@ -113,29 +93,5 @@ public class RuleEngineStep extends AbstractProgressStep {
     protected void shutDown() throws Exception {
         LOGGER.info("Shutting down RuleEngineService");
         globalLatch.countDown();
-    }
-
-    protected static class RuleEngineStateHolder {
-        private int bucket;
-        private long columnsCount;
-        private long from;
-
-        public RuleEngineStateHolder(int bucket, long columnsCount, long from) {
-            this.bucket = bucket;
-            this.columnsCount = columnsCount;
-            this.from = from;
-        }
-
-        public int getBucket() {
-            return bucket;
-        }
-
-        public long getColumnsCount() {
-            return columnsCount;
-        }
-
-        public long getFrom() {
-            return from;
-        }
     }
 }

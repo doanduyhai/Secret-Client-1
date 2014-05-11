@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import com.secret.client.CassandraStressMain;
 import com.secret.client.cassandra.ClientDao;
 import com.secret.client.cassandra.ContractDao;
 import com.secret.client.cassandra.ProgressDao;
@@ -51,121 +52,67 @@ public class GoOneStepTest {
     @Mock
     private RequestService requestService;
 
-    private int instanceCount = 100;
+    private int instanceId = 1;
     private int loggingInteval = 100;
-    private int maximumRowSize = 100;
 
     @Before
     public void setUp() {
-        service = new GoOneStep(null, 3, keyspace, null, requestDao);
+        service = new GoOneStep(null, instanceId, keyspace, CassandraStressMain.buildJacksonMapper(), requestDao);
         service.clientContractMatchingService = clientContractMatchingService;
         service.progressDao = progressDao;
         service.requestService = requestService;
-        service.maximumRowSize = maximumRowSize;
-        service.instancesCount = instanceCount;
         service.loggingInterval = loggingInteval;
     }
 
     @Test
-    public void should_proceed_client_and_contract_in_the_same_bucket() throws Exception {
+    public void should_proceed_client_and_contract() throws Exception {
         //Given
-        int clientBucket = 1;
-        long clientColumnCount = 1;
-        int requestBucket = 1;
-        long requestColumnCount = 1;
         int batchClientCount = 1;
-        RequestService.RequestStateHolder requestStateHolder = new RequestService.RequestStateHolder(requestBucket, requestColumnCount, batchClientCount);
-        RequestService.RequestStateHolder newRequestStateHolder = new RequestService.RequestStateHolder(requestBucket, requestColumnCount, batchClientCount);
+        int newBatchClientCount = 11;
         Long from = 0L;
-        Long extraClientCount = null;
-        GoOneStateHolder stateHolder = new GoOneStateHolder(clientBucket, clientColumnCount, requestStateHolder, from, extraClientCount);
+        Long newFrom = 10L;
+
+        GoOneStateHolder stateHolder = new GoOneStateHolder(batchClientCount, from);
+
         String partitionKey = random(10);
         final List<String> partitionKeys = asList(partitionKey);
-        Statuses statuses = new Statuses(10L, partitionKeys);
+        Statuses statuses = new Statuses(newFrom, partitionKeys);
 
-        when(progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, clientBucket, from)).thenReturn(statuses);
-        when(requestService.process(requestStateHolder, partitionKeys.size())).thenReturn(newRequestStateHolder);
-
-        //When
-        final GoOneStateHolder actual = service.process(stateHolder);
-
-        //Then
-        assertThat(actual.getClientBucket()).isEqualTo(clientBucket);
-        assertThat(actual.getClientColumnsCount()).isEqualTo(clientColumnCount + 1);
-        assertThat(actual.getFrom()).isEqualTo(10L);
-        assertThat(actual.getRequestStateHolder()).isEqualTo(newRequestStateHolder);
-        assertThat(actual.getSafeExtraClientCount()).isEqualTo(0L);
-
-        verify(clientContractMatchingService).processClient(partitionKeys, clientBucket, instanceCount);
-    }
-
-    @Test
-    public void should_proceed_client_and_contract_and_change_bucket() throws Exception {
-        //Given
-        service.maximumRowSize = 10;
-
-        int clientBucket = 1;
-        long clientColumnCount = 9;
-        int requestBucket = 1;
-        long requestColumnCount = 1;
-        int batchClientCount = 1;
-        RequestService.RequestStateHolder requestStateHolder = new RequestService.RequestStateHolder(requestBucket, requestColumnCount, batchClientCount);
-        RequestService.RequestStateHolder newRequestStateHolder = new RequestService.RequestStateHolder(requestBucket, requestColumnCount, batchClientCount);
-        Long from = 0L;
-        Long extraClientCount = null;
-        Long newExtraClientCount = 1L;
-        GoOneStateHolder stateHolder = new GoOneStateHolder(clientBucket, clientColumnCount, requestStateHolder, from, extraClientCount);
-        String partitionKey1 = random(10);
-        String partitionKey2 = random(10);
-        String partitionKey3 = random(10);
-        final List<String> partitionKeys = asList(partitionKey1, partitionKey2, partitionKey3);
-        Statuses statuses = new Statuses(10L, partitionKeys);
-
-        when(progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, clientBucket, from)).thenReturn(statuses);
-        when(clientContractMatchingService.getExtraClientsForBucket(clientBucket)).thenReturn(newExtraClientCount);
-        when(requestService.process(requestStateHolder, partitionKeys.size())).thenReturn(newRequestStateHolder);
+        when(progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, instanceId, from)).thenReturn(statuses);
+        when(requestService.process(batchClientCount, partitionKeys.size())).thenReturn(newBatchClientCount);
 
         //When
         final GoOneStateHolder actual = service.process(stateHolder);
 
         //Then
-        assertThat(actual.getClientBucket()).isEqualTo(clientBucket + instanceCount);
-        assertThat(actual.getClientColumnsCount()).isEqualTo(0);
-        assertThat(actual.getFrom()).isEqualTo(10L);
-        assertThat(actual.getRequestStateHolder()).isEqualTo(newRequestStateHolder);
-        assertThat(actual.getSafeExtraClientCount()).isEqualTo(newExtraClientCount);
+        assertThat(actual.getFrom()).isEqualTo(newFrom);
+        assertThat(actual.getBatchClientCount()).isEqualTo(newBatchClientCount);
 
-        verify(clientContractMatchingService).processClient(partitionKeys, clientBucket + instanceCount, instanceCount);
+        verify(clientContractMatchingService).processClient(partitionKeys);
     }
+
 
     @Test
     public void should_sleep_and_poll_if_no_data() throws Exception {
         //Given
 
         service.sleepDelay = 1;
-        int clientBucket = 1;
-        long clientColumnCount = 1;
-        int requestBucket = 1;
-        long requestColumnCount = 1;
         int batchClientCount = 1;
-        RequestService.RequestStateHolder requestStateHolder = new RequestService.RequestStateHolder(requestBucket, requestColumnCount, batchClientCount);
         Long from = 0L;
-        Long extraClientCount = null;
-        GoOneStateHolder stateHolder = new GoOneStateHolder(clientBucket, clientColumnCount, requestStateHolder, from, extraClientCount);
-        final List<String> partitionKeys = new ArrayList<String>();
-        Statuses statuses = new Statuses(10L, partitionKeys);
 
-        when(progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, clientBucket, from)).thenReturn(statuses);
+        GoOneStateHolder stateHolder = new GoOneStateHolder(batchClientCount, from);
+
+        final List<String> partitionKeys = new ArrayList<String>();
+        Statuses statuses = new Statuses(from, partitionKeys);
+
+        when(progressDao.findPartitionKeysByStatus(CLIENT_IMPORTED, instanceId, from)).thenReturn(statuses);
 
         //When
         final GoOneStateHolder actual = service.process(stateHolder);
 
         //Then
-        assertThat(actual.getClientBucket()).isEqualTo(clientBucket);
-        assertThat(actual.getClientColumnsCount()).isEqualTo(clientColumnCount);
         assertThat(actual.getFrom()).isEqualTo(from);
-        assertThat(actual.getRequestStateHolder()).isEqualTo(requestStateHolder);
-        assertThat(actual.getSafeExtraClientCount()).isEqualTo(0L);
+        assertThat(actual.getBatchClientCount()).isEqualTo(batchClientCount);
 
         verifyZeroInteractions(requestService, clientContractMatchingService);
     }

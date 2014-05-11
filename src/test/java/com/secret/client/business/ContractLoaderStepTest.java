@@ -35,7 +35,6 @@ public class ContractLoaderStepTest {
         step = new ContractLoaderStep(null, keyspace, null, loader);
         step.loggingInterval = 1;
         step.batchInsertDelay = 1;
-        step.maximumRowSize = 100;
         step.contractDao = contractDao;
         when(contractDao.createMutator()).thenReturn(contractMutator);
     }
@@ -54,7 +53,7 @@ public class ContractLoaderStepTest {
         step.run();
 
         //Then
-        verify(contractDao).insertContratForClient(contractMutator,contract);
+        verify(contractDao).insertContratForClient(contractMutator, contract);
     }
 
     @Test
@@ -71,7 +70,7 @@ public class ContractLoaderStepTest {
         step.run();
 
         //Then
-        verify(contractDao).insertContratForClient(contractMutator,contract);
+        verify(contractDao).insertContratForClient(contractMutator, contract);
         verify(contractMutator).execute();
     }
 }

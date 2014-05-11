@@ -13,13 +13,9 @@ public abstract class AbstractInjectorStep extends AbstractExecutionThreadServic
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractInjectorStep.class);
 
-    protected final String MAXIMUM_ROW_SIZE = "maximum.row.size";
-
     protected PropertyLoader propertyLoader = new PropertyLoader();
     protected CountDownLatch globalLatch;
     protected int loggingInterval;
-
-    protected int maximumRowSize;
 
     protected Keyspace keyspace;
 

@@ -19,6 +19,10 @@ public class ClientDataWriter extends CsvDataWriter {
         }
     }
 
+    public void writeClients(Client client) {
+        writer.writeNext(client.toCsv().split(";"));
+    }
+
     public void flush() throws IOException {
         writer.close();
     }
