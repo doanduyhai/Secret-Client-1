@@ -91,6 +91,7 @@ public class GoOneStep extends AbstractProgressStep {
 
     @Override
     protected void shutDown() throws Exception {
+        clientContractMatchingService.showClientWithoutContract();
         LOGGER.info("Shutting down GoOneStep");
         globalLatch.countDown();
     }

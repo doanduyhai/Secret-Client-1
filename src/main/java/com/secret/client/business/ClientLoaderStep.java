@@ -45,7 +45,6 @@ public class ClientLoaderStep extends AbstractInjectorStep {
         Mutator<Composite> progressMutator = progressDao.createMutator();
         while (clientLoader.hasNext()) {
             if (i == batchInsertSize) {
-                LOGGER.info("Flush client data");
                 clientMutator.execute();
                 progressMutator.execute();
                 clientMutator = clientDao.createMutator();
